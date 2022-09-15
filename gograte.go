@@ -10,11 +10,6 @@ import (
 	"strings"
 )
 
-const (
-	// local JSON Config File path - relative to project root
-	localJSONConfigFile = "./config/local.json"
-)
-
 // ddlFile represents a Data Definition Language (DDL) file
 // Given the file naming convention 001-user.sql, the numbers up to
 // the first dash are extracted, converted to an int and added to the
@@ -44,19 +39,20 @@ func (df ddlFile) String() string {
 
 // readDDLFiles reads and returns sorted DDL files from the
 // up or down directory
-func readDDLFiles(dir string) ([]ddlFile, error) {
+func readDDLFiles(dir string) (ddlFiles []ddlFile, err error) {
 
-	files, err := os.ReadDir(dir)
+	var files []os.DirEntry
+	files, err = os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var ddlFiles []ddlFile
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
-		df, err := newDDLFile(file.Name())
+		var df ddlFile
+		df, err = newDDLFile(file.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -90,15 +86,18 @@ func (bfn byFileNumber) Less(i, j int) bool { return bfn[i].fileNumber < bfn[j].
 // -d flag sets the database connection using a Connection URI string.
 //
 // -f flag is sent before each file to tell it to process the file
-func PSQLArgs(up bool) ([]string, error) {
+func PSQLArgs(up bool, profile string) ([]string, error) {
 
 	var (
 		f   ConfigFile
 		err error
 	)
 
+	// regular config path - relative to project root
+	configFilePath := "./config/" + profile + ".json"
+
 	// read JSON config file
-	f, err = NewConfigFile()
+	f, err = NewConfigFile(configFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -246,16 +245,16 @@ type ConfigFile struct {
 	} `json:"config"`
 }
 
-// NewConfigFile initializes a ConfigFile struct from a JSON file at a
+// NewConfigFile initializes a Config struct from a JSON file at a
 // predetermined file path (path is relative to project root)
 //
 // Local:      ./config/local.json
-func NewConfigFile() (ConfigFile, error) {
+func NewConfigFile(configFilePath string) (ConfigFile, error) {
 	var (
 		b   []byte
 		err error
 	)
-	b, err = os.ReadFile(localJSONConfigFile)
+	b, err = os.ReadFile(configFilePath)
 	if err != nil {
 		return ConfigFile{}, err
 	}
@@ -279,14 +278,16 @@ type ConfigCueFilePaths struct {
 
 // CUEPaths returns the ConfigCueFilePaths.
 // Paths are relative to the project root.
-func CUEPaths() (ConfigCueFilePaths, error) {
-	const (
-		schemaInput = "./config/cue/schema.cue"
-		localInput  = "./config/cue/local.cue"
-	)
+func CUEPaths(profile string) ConfigCueFilePaths {
+	const schemaInput = "./config/cue/schema.cue"
+
+	// cue config path - relative to project root
+	profileInput := "./config/cue/" + profile + ".cue"
+	// regular config path - relative to project root
+	profileOutput := "./config/" + profile + ".json"
 
 	return ConfigCueFilePaths{
-		Input:  []string{schemaInput, localInput},
-		Output: localJSONConfigFile,
-	}, nil
+		Input:  []string{schemaInput, profileInput},
+		Output: profileOutput,
+	}
 }
