@@ -13,7 +13,7 @@ package config
 	searchPath: !="" // must be specified and non-empty
 }
 
-#LocalConfig: {
+#Config: {
 	#Base
 	database: #Database
 }
