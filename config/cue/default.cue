@@ -1,6 +1,6 @@
 package config
 
-config: #LocalConfig
+config: #Config
 
 config: migrationScriptsDir: "./scripts/db/migrations"
 
